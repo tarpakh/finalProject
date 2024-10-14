@@ -1,0 +1,139 @@
+﻿@page
+@model newApplicationCRUD.Pages.ProductsModel
+@{
+    ViewData["Title"] = "Product Management System";
+}
+
+<!-- Adding Bootstrap CSS (without Popper.js) -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+<div class="container mt-5">
+    <h2 class="text-center mb-4">Product Management System</h2>
+
+    <!-- Product Form -->
+    <form id="productForm" class="mb-4">
+        <input type="hidden" id="productId" />
+
+        <div class="row mb-3">
+            <label for="productName" class="col-sm-2 col-form-label">Name:</label>
+            <div class="col-sm-10">
+                <input type="text" class="form-control" id="productName" required />
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <label for="productPrice" class="col-sm-2 col-form-label">Price:</label>
+            <div class="col-sm-10">
+                <input type="number" class="form-control" id="productPrice" required />
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <label for="productQuantity" class="col-sm-2 col-form-label">Quantity:</label>
+            <div class="col-sm-10">
+                <input type="number" class="form-control" id="productQuantity" required />
+            </div>
+        </div>
+
+        <div class="text-center">
+            <button type="button" class="btn btn-primary btn-success w-75" id="createProductBtn">Create or Update</button>
+
+        </div>
+    </form>
+
+    <!-- Product List -->
+    <h3 class="text-center">Product List</h3>
+    <table class="table table-bordered table-striped" id="productTable">
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Product Name</th>
+                <th>Product Price</th>
+                <th>Quantity</th>
+                <th>Operations</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Product rows will be populated here -->
+        </tbody>
+    </table>
+</div>
+
+<!-- Adding Bootstrap JS without Popper.js -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    const apiUrl = '/api/products';
+
+    async function fetchProducts() {
+        const response = await fetch(apiUrl);
+        const products = await response.json();
+        const tableBody = document.querySelector('#productTable tbody');
+        tableBody.innerHTML = '';
+        products.forEach(product => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                        <td>${product.id}</td>
+                        <td>${product.name}</td>
+                        <td>${product.price}</td>
+                        <td>${product.quantity}</td>
+                        <td>
+                                <button class="btn btn-success btn-sm me-2" onclick="editProduct(${product.id})">Edit</button>
+                                <button class="btn btn-danger btn-sm" onclick="deleteProduct(${product.id})">Delete</button>
+                        </td>
+                    `;
+            tableBody.appendChild(row);
+        });
+    }
+
+    document.getElementById('createProductBtn').onclick = async () => {
+        const id = document.getElementById('productId').value;
+        const name = document.getElementById('productName').value;
+        const price = document.getElementById('productPrice').value;
+        const quantity = document.getElementById('productQuantity').value;
+
+        const method = id ? 'PUT' : 'POST';
+        const url = id ? `${apiUrl}/${id}` : apiUrl;
+
+        const productData = id ? { id, name, price, quantity } : { name, price, quantity };
+
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(productData)
+        });
+        if (response.ok) {
+            fetchProducts();
+            clearForm();
+        } else {
+            const error = await response.text();
+            console.error('Error:', error);
+        }
+    };
+
+    window.editProduct = (id) => {
+        fetch(`${apiUrl}/${id}`)
+            .then(response => response.json())
+            .then(product => {
+                document.getElementById('productId').value = product.id;
+                document.getElementById('productName').value = product.name;
+                document.getElementById('productPrice').value = product.price;
+                document.getElementById('productQuantity').value = product.quantity;
+            });
+    };
+
+    window.deleteProduct = async (id) => {
+        await fetch(`${apiUrl}/${id}`, { method: 'DELETE' });
+        fetchProducts();
+    };
+    function clearForm() {
+        document.getElementById('productForm').reset();
+        document.getElementById('productId').value = '';
+    }
+
+
+    // Initial fetch
+    fetchProducts();
+</script>
